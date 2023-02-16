@@ -3,8 +3,10 @@ const app = express();
 const morgan = require("morgan");
 const session = require("express-session");
 const fileStore = require("session-file-store")(session);
+const passport = require("passport");
 
 require("dotenv").config();
+app.set("view engine", "ejs");
 
 //^ Port Setting
 const port = process.env.NODE_PORT_ENV || 3000;
@@ -21,10 +23,13 @@ app.use(
     store: new fileStore(), // 세션이 데이터를 저장하는 곳
   })
 );
+app.use(passport.initialize());
+app.use(passport.session());
 
 //^ Routes Setting
-app.use("/", require("./routes/loginMain")); // 메인 화면 라우터
-app.use("/signup", require("./routes/signup")); // 회원 가입 라우터
+app.use("/login", require("./routes/loginService/loginMain")); // 메인 화면 라우터
+app.use("/signup", require("./routes/loginService/signup")); // 회원 가입 라우터
+app.use("/auth", require("./routes/loginService/auth")); // 회원 가입 라우터
 
 //^ Port Connect setting
 app.listen(port, () => {
