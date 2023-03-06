@@ -1,37 +1,46 @@
-const express = require("express");
-const app = express();
-const morgan = require("morgan");
-const session = require("express-session");
-const fileStore = require("session-file-store")(session);
-const passport = require("passport");
+import express from "express";
+import "express-async-errors";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import passport from "passport";
+import helmet from "helmet";
+import { dotconfig } from "./dotconfig.js";
+import { sequelize } from "./db/database.js";
 
-require("dotenv").config();
-app.set("view engine", "ejs");
+const app = express();
+
+//^ Routes Import
+import authRouter from "./routes/loginService/auth.js";
+import signupRouter from "./routes/loginService/signup.js";
 
 //^ Port Setting
-const port = process.env.NODE_PORT_ENV || 3000;
+const port = dotconfig.host.port;
 
 //^ Middel Wear Setting
-app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(
-  session({
-    secret: "secret", // 데이터를 암호화 하기 위해 필요한 옵션
-    resave: false, // 요청이 왔을때 세션을 수정하지 않더라도 다시 저장소에 저장되도록
-    saveUninitialized: true, // 세션이 필요하면 세션을 실행시칸다(서버에 부담을 줄이기 위해)
-    store: new fileStore(), // 세션이 데이터를 저장하는 곳
-  })
-);
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(morgan("tiny"));
+app.use(cookieParser());
+app.use(helmet());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
-//^ Routes Setting
-app.use("/login", require("./routes/loginService/loginMain")); // 메인 화면 라우터
-app.use("/signup", require("./routes/loginService/signup")); // 회원 가입 라우터
-app.use("/auth", require("./routes/loginService/auth")); // 회원 가입 라우터
+//^ Routes Connect
+app.use("/", authRouter); // 로그인 서비스 / 메인 화면 라우터
+app.use("/signup", signupRouter); // 로그인 서비스 / 회원가입 라우터
 
+//^ Error MiddleWear Setting
+app.use((req, res, next) => {
+  res.sendStatus(404);
+}); // 존재하지 않는 URL
+
+app.use((error, req, res, next) => {
+  console.error(error);
+  res.sendStatus(500);
+}); // 에러 미들웨어
+
+sequelize.sync();
 //^ Port Connect setting
 app.listen(port, () => {
-  console.log(`-----------------------------------${port}번 서버 실행 OK `);
+  console.log(`-----------------------------------${port} Server runnig OK `);
 });
